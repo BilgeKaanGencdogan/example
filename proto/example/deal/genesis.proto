@@ -1,0 +1,22 @@
+syntax = "proto3";
+package example.deal;
+
+import "gogoproto/gogo.proto";
+import "example/deal/params.proto";
+import "example/deal/deal_counter.proto";
+import "example/deal/new_deal.proto";
+import "example/deal/contract_counter.proto";
+import "example/deal/new_contract.proto";
+
+option go_package = "example/x/deal/types";
+
+// GenesisState defines the deal module's genesis state.
+message GenesisState {
+  // params defines all the parameters of the module.
+  Params params = 1 [(gogoproto.nullable) = false];
+  DealCounter dealCounter = 2;
+  repeated NewDeal newDealList = 3 [(gogoproto.nullable) = false];
+  repeated ContractCounter contractCounter = 4 [(gogoproto.nullable) = true];
+  repeated NewContract newContractList = 5 [(gogoproto.nullable) = false];
+  
+}

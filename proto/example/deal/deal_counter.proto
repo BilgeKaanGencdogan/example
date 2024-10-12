@@ -1,0 +1,14 @@
+syntax = "proto3";
+package example.deal;
+
+import "amino/amino.proto";
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "cosmos/base/query/v1beta1/pagination.proto";
+import "example/deal/params.proto";
+
+option go_package = "example/x/deal/types";
+
+message DealCounter {
+    uint64 idValue = 1; 
+  }
