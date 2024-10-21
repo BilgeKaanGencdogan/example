@@ -23,6 +23,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
+
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/server"
@@ -75,7 +76,9 @@ import (
 	ibctransferkeeper "github.com/cosmos/ibc-go/v8/modules/apps/transfer/keeper"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 
+	dealmodulekeeper "example/x/deal/keeper"
 	examplemodulekeeper "example/x/example/keeper"
+
 	// this line is used by starport scaffolding # stargate/app/moduleImport
 
 	"example/docs"
@@ -142,6 +145,7 @@ type App struct {
 	ScopedKeepers             map[string]capabilitykeeper.ScopedKeeper
 
 	ExampleKeeper examplemodulekeeper.Keeper
+	dealKeeper    dealmodulekeeper.Keeper
 	// this line is used by starport scaffolding # stargate/app/keeperDeclaration
 
 	// simulation manager
@@ -171,7 +175,7 @@ func getGovProposalHandlers() []govclient.ProposalHandler {
 }
 
 // AppConfig returns the default app config.
-func AppConfig() depinject.Config {
+func AppConfig( /*appCodec codec.BinaryCodec*/ ) depinject.Config {
 	return depinject.Configs(
 		appConfig,
 		// Alternatively, load the app config from a YAML file.
@@ -181,6 +185,7 @@ func AppConfig() depinject.Config {
 			map[string]module.AppModuleBasic{
 				genutiltypes.ModuleName: genutil.NewAppModuleBasic(genutiltypes.DefaultMessageValidator),
 				govtypes.ModuleName:     gov.NewAppModuleBasic(getGovProposalHandlers()),
+				// dealmoduletypes.ModuleName: dealmodule.NewAppModuleBasic(appCodec),
 				// this line is used by starport scaffolding # stargate/appConfig/moduleBasic
 			},
 		),
@@ -199,6 +204,9 @@ func New(
 	var (
 		app        = &App{ScopedKeepers: make(map[string]capabilitykeeper.ScopedKeeper)}
 		appBuilder *runtime.AppBuilder
+
+		// Create a new codec
+		// appCodec = codec.NewProtoCodec(types.NewInterfaceRegistry())
 
 		// merge the AppConfig and other configuration in one config
 		appConfig = depinject.Configs(
@@ -246,6 +254,7 @@ func New(
 		&app.GroupKeeper,
 		&app.CircuitBreakerKeeper,
 		&app.ExampleKeeper,
+		&app.dealKeeper,
 		// this line is used by starport scaffolding # stargate/app/keeperDefinition
 	); err != nil {
 		panic(err)

@@ -23,9 +23,6 @@ import (
 	modulev1 "example/api/example/deal/module"
 	"example/x/deal/keeper"
 	"example/x/deal/types"
-
-	storetypes "cosmossdk.io/store/types"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 var (
@@ -46,6 +43,7 @@ var (
 
 // AppModuleBasic implements the AppModuleBasic interface that defines the
 // independent methods a Cosmos SDK module needs to implement.
+
 type AppModuleBasic struct {
 	cdc codec.BinaryCodec
 }
@@ -185,11 +183,6 @@ type ModuleInputs struct {
 
 	AccountKeeper types.AccountKeeper
 	BankKeeper    types.BankKeeper
-
-	storeKey   storetypes.StoreKey
-	memKey     storetypes.StoreKey
-	paramstore paramtypes.Subspace
-	authority  string
 }
 
 type ModuleOutputs struct {
@@ -206,21 +199,19 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 		authority = authtypes.NewModuleAddressOrBech32Address(in.Config.Authority)
 	}
 	k := keeper.NewKeeper(
-		in.AccountKeeper,   // types.AccountKeeper
-		in.BankKeeper,      // types.BankKeeper
-		in.Cdc,             // codec.BinaryCodec
-		in.storeKey,        // store.StoreKey
-		in.memKey,          // store.StoreKey
-		in.paramstore,      // params.Subspace
-		authority.String(), // string
-		in.StoreService,    // store.KVStoreService
+		in.AccountKeeper,
+		in.BankKeeper,
+		in.Cdc,
+		in.StoreService,
+		in.Logger,
+		authority.String(),
 	)
 	m := NewAppModule(
 		in.Cdc,
-		*k,
+		k,
 		in.AccountKeeper,
 		in.BankKeeper,
 	)
 
-	return ModuleOutputs{DealKeeper: *k, Module: m}
+	return ModuleOutputs{DealKeeper: k, Module: m}
 }

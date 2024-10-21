@@ -5,6 +5,8 @@ import (
 	"os"
 
 	clienthelpers "cosmossdk.io/client/v2/helpers"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/codec/types"
 	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
 
 	"example/app"
@@ -12,7 +14,10 @@ import (
 )
 
 func main() {
-	rootCmd := cmd.NewRootCmd()
+	// Create a new codec
+	appCodec := codec.NewProtoCodec(types.NewInterfaceRegistry())
+
+	rootCmd := cmd.NewRootCmd(appCodec)
 	if err := svrcmd.Execute(rootCmd, clienthelpers.EnvPrefix, app.DefaultNodeHome); err != nil {
 		fmt.Fprintln(rootCmd.OutOrStderr(), err)
 		os.Exit(1)

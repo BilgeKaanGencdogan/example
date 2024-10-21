@@ -32,3 +32,8 @@ const (
 const (
 	ContractCounterKey = "ContractCounter-value-"
 )
+
+// In types/keys.go
+func NewDealStoreKey(dealId string) []byte {
+	return append(KeyPrefix(NewDealKeyPrefix), NewDealKey(dealId)...)
+}

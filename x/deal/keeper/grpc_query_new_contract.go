@@ -4,45 +4,72 @@ import (
 	"context"
 	"example/x/deal/types"
 
-	"cosmossdk.io/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-// NewContractAll is the query handler to fetch all the contracts under given dealId
 func (k Keeper) NewContractAll(c context.Context, req *types.QueryAllNewContractRequest) (*types.QueryAllNewContractResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
 	var newContracts []types.NewContract
-
 	ctx := sdk.UnwrapSDKContext(c)
+	store := k.storeService.OpenKVStore(ctx)
 
-	prefixStoreKey := types.NewContractKey(req.DealId)
+	// Create the prefix for contracts under this dealId
+	prefixKey := types.NewContractKey(req.DealId)
 
-	store := ctx.KVStore(k.storeKey)
-
-	newContractStore := prefix.NewStore(store, prefixStoreKey)
-
-	pageRes, err := query.Paginate(newContractStore, req.Pagination,
-		func(key []byte, value []byte) error {
-			var newContract types.NewContract
-			if err := k.cdc.Unmarshal(value, &newContract); err != nil {
-				return err
-			}
-
-			newContracts = append(newContracts, newContract)
-			return nil
-		})
-
+	// Get iterator with prefix
+	iterator, err := store.Iterator(prefixKey, nil)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+	defer iterator.Close()
 
-	return &types.QueryAllNewContractResponse{NewContract: newContracts, Pagination: pageRes}, nil
+	// Handle pagination manually
+	start := 0
+	if req.Pagination != nil && req.Pagination.Offset > 0 {
+		start = int(req.Pagination.Offset)
+	}
+
+	limit := 100 // default limit
+	if req.Pagination != nil && req.Pagination.Limit > 0 {
+		limit = int(req.Pagination.Limit)
+	}
+
+	count := 0
+	for ; iterator.Valid(); iterator.Next() {
+		// Skip entries before start
+		if count < start {
+			count++
+			continue
+		}
+		// Break if we've reached the limit
+		if len(newContracts) >= limit {
+			break
+		}
+
+		var newContract types.NewContract
+		if err := k.cdc.Unmarshal(iterator.Value(), &newContract); err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		newContracts = append(newContracts, newContract)
+		count++
+	}
+
+	// Create pagination response
+	pageRes := &query.PageResponse{
+		NextKey: nil, // Set to nil since we're using offset pagination
+		Total:   uint64(count),
+	}
+
+	return &types.QueryAllNewContractResponse{
+		NewContract: newContracts,
+		Pagination:  pageRes,
+	}, nil
 }
 
 // NewContract is the query handler to fatch the contract for a given specific dealId and contractId

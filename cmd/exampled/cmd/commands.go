@@ -24,6 +24,7 @@ import (
 	"github.com/spf13/viper"
 
 	"example/app"
+	"example/x/deal/client/cli"
 )
 
 func initRootCmd(
@@ -85,6 +86,11 @@ func queryCommand() *cobra.Command {
 		authcmd.QueryTxCmd(),
 		server.QueryBlockResultsCmd(),
 	)
+	cmd.AddCommand(cli.CmdQueryParams())
+	cmd.AddCommand(cli.CmdListNewDeal())
+	cmd.AddCommand(cli.CmdShowNewDeal())
+	cmd.AddCommand(cli.CmdListNewContract())
+	cmd.AddCommand(cli.CmdShowNewContract())
 	cmd.PersistentFlags().String(flags.FlagChainID, "", "The network chain ID")
 
 	return cmd
@@ -111,6 +117,14 @@ func txCommand() *cobra.Command {
 		authcmd.GetDecodeCommand(),
 		authcmd.GetSimulateCmd(),
 	)
+
+	cmd.AddCommand(cli.CmdCreateDeal())
+	cmd.AddCommand(cli.CmdCreateContract())
+	cmd.AddCommand(cli.CmdCommitContract())
+	cmd.AddCommand(cli.CmdApproveContract())
+	cmd.AddCommand(cli.CmdShipOrder())
+	cmd.AddCommand(cli.CmdOrderDelivered())
+	cmd.AddCommand(cli.CmdCancelOrder())
 	cmd.PersistentFlags().String(flags.FlagChainID, "", "The network chain ID")
 
 	return cmd

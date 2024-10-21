@@ -39,7 +39,9 @@ func New(t *testing.T, configs ...Config) *Network {
 // DefaultConfig will initialize config for the network with custom application,
 // genesis and single validator. All other parameters are inherited from cosmos-sdk/testutil/network.DefaultConfig
 func DefaultConfig() network.Config {
-	cfg, err := network.DefaultConfigWithAppConfig(app.AppConfig())
+
+	// appCodec := codec.NewProtoCodec(t.NewInterfaceRegistry())
+	cfg, err := network.DefaultConfigWithAppConfig(app.AppConfig( /*appCodec*/ ))
 	if err != nil {
 		panic(err)
 	}

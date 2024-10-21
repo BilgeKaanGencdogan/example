@@ -3,6 +3,12 @@ package app
 import (
 	"time"
 
+	dealmodulev1 "example/api/example/deal/module"
+	examplemodulev1 "example/api/example/example/module"
+	dealmoduletypes "example/x/deal/types"
+	_ "example/x/example/module" // import for side-effects
+	examplemoduletypes "example/x/example/types"
+
 	runtimev1alpha1 "cosmossdk.io/api/cosmos/app/runtime/v1alpha1"
 	appv1alpha1 "cosmossdk.io/api/cosmos/app/v1alpha1"
 	authmodulev1 "cosmossdk.io/api/cosmos/auth/module/v1"
@@ -52,10 +58,6 @@ import (
 	ibctransfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"google.golang.org/protobuf/types/known/durationpb"
-
-	examplemodulev1 "example/api/example/example/module"
-	_ "example/x/example/module" // import for side-effects
-	examplemoduletypes "example/x/example/types"
 	// this line is used by starport scaffolding # stargate/app/moduleImport
 )
 
@@ -94,6 +96,7 @@ var (
 		circuittypes.ModuleName,
 		// chain modules
 		examplemoduletypes.ModuleName,
+		dealmoduletypes.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/initGenesis
 	}
 
@@ -119,6 +122,7 @@ var (
 		ibcfeetypes.ModuleName,
 		// chain modules
 		examplemoduletypes.ModuleName,
+		dealmoduletypes.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/beginBlockers
 	}
 
@@ -138,6 +142,7 @@ var (
 		ibcfeetypes.ModuleName,
 		// chain modules
 		examplemoduletypes.ModuleName,
+		dealmoduletypes.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/endBlockers
 	}
 
@@ -296,6 +301,10 @@ var (
 			{
 				Name:   examplemoduletypes.ModuleName,
 				Config: appconfig.WrapAny(&examplemodulev1.Module{}),
+			},
+			{
+				Name:   dealmoduletypes.ModuleName,
+				Config: appconfig.WrapAny(&dealmodulev1.Module{}),
 			},
 			// this line is used by starport scaffolding # stargate/app/moduleConfig
 		},

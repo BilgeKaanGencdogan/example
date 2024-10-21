@@ -3,19 +3,19 @@ package keeper
 import (
 	"example/x/deal/types"
 
-	"cosmossdk.io/store/prefix"
-	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // SetNewContract set a specific newContract in the store -  "NewContract/value/{dealId}"
 func (k Keeper) SetNewContract(ctx sdk.Context, newContract types.NewContract) {
-	key := types.NewContractKey(newContract.DealId)        // {byte} key of "NewContract/value/{dealId}/"
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), key) // {this returns store object} "store{parent: KVStore, prefix: NewContract/value/{dealId}/}"
-	b := k.cdc.MustMarshal(&newContract)                   // The serialized byte array of object
-	store.Set(types.NewContractKey(
-		newContract.ContractId,
-	), b) // {this sets the value in the store} "NewContract/value/{dealId}/{contractId}"
+	// Create a hierarchical key structure manually
+	dealPrefix := types.NewContractKey(newContract.DealId)
+	// Ensure proper separation between dealId and contractId in the key
+	fullKey := append(dealPrefix, []byte("/"+newContract.ContractId)...)
+
+	store := k.storeService.OpenKVStore(ctx)
+	b := k.cdc.MustMarshal(&newContract) // The serialized byte array of object
+	store.Set(fullKey, b)                // {this sets the value in the store} "NewContract/value/{dealId}/{contractId}"
 }
 
 // GetNewContract returns a newContract from its index
@@ -24,9 +24,18 @@ func (k Keeper) GetNewContract(
 	dealId string,
 	contractId string,
 ) (val types.NewContract, found bool) {
-	storeKey := types.NewContractKey(dealId)                    // {byte} key of "NewContract/value/{dealId}/"
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), storeKey) //{this returns store object} // "store{parent: KVStore, prefix: NewContract/value/{dealId}/}"
-	b := store.Get(types.NewContractKey(contractId))
+	// Create a hierarchical key structure manually
+	dealPrefix := types.NewContractKey(dealId)
+	// Ensure proper separation between dealId and contractId in the key
+	fullKey := append(dealPrefix, []byte("/"+contractId)...)
+
+	store := k.storeService.OpenKVStore(ctx)
+
+	b, err := store.Get(fullKey)
+	if err != nil {
+		return val, false
+	}
+
 	if b == nil {
 		return val, false
 	}
@@ -40,17 +49,27 @@ func (k Keeper) RemoveNewContract(
 	dealId string,
 	contractId string,
 ) {
-	storeKey := types.NewContractKey(dealId)
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), storeKey)
-	store.Delete(types.NewContractKey(contractId))
+	// Create a hierarchical key structure manually
+	dealPrefix := types.NewContractKey(dealId)
+	// Ensure proper separation between dealId and contractId in the key
+	fullKey := append(dealPrefix, []byte("/"+contractId)...)
+
+	store := k.storeService.OpenKVStore(ctx)
+
+	store.Delete(fullKey)
 }
 
-// GetAllNewContract returns all newContract
 func (k Keeper) GetAllNewContract(ctx sdk.Context, dealId string) (list []types.NewContract) {
-	storeKey := types.NewContractKey(dealId)
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), storeKey)
-	iterator := storetypes.KVStorePrefixIterator(store, []byte{})
+	// Create the prefix key for the deal
+	dealPrefix := types.NewContractKey(dealId)
 
+	store := k.storeService.OpenKVStore(ctx)
+
+	// Use the store's iterator with the deal prefix
+	iterator, err := store.Iterator(dealPrefix, nil)
+	if err != nil {
+		return nil
+	}
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
@@ -59,5 +78,5 @@ func (k Keeper) GetAllNewContract(ctx sdk.Context, dealId string) (list []types.
 		list = append(list, val)
 	}
 
-	return
+	return list
 }

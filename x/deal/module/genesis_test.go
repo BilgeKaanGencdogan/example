@@ -19,8 +19,8 @@ func TestGenesis(t *testing.T) {
 	}
 
 	k, ctx := keepertest.DealKeeper(t)
-	deal.InitGenesis(ctx, *k, genesisState)
-	got := deal.ExportGenesis(ctx, *k)
+	deal.InitGenesis(ctx, k, genesisState)
+	got := deal.ExportGenesis(ctx, k)
 	require.NotNil(t, got)
 
 	nullify.Fill(&genesisState)

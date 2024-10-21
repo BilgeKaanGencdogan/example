@@ -4,14 +4,12 @@ import (
 	"context"
 	"example/x/deal/types"
 
-	"cosmossdk.io/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-// NewDealAll is the query handler to fetch all the new deals
 func (k Keeper) NewDealAll(c context.Context, req *types.QueryAllNewDealRequest) (*types.QueryAllNewDealResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
@@ -19,26 +17,56 @@ func (k Keeper) NewDealAll(c context.Context, req *types.QueryAllNewDealRequest)
 
 	var newDeals []types.NewDeal
 	ctx := sdk.UnwrapSDKContext(c)
+	store := k.storeService.OpenKVStore(ctx)
 
-	store := ctx.KVStore(k.storeKey)
-	newDealStore := prefix.NewStore(store, types.KeyPrefix(types.NewDealKeyPrefix))
-
-	pageRes, err := query.Paginate(newDealStore, req.Pagination, func(key []byte, value []byte) error {
-		var newDeal types.NewDeal
-		if err := k.cdc.Unmarshal(value, &newDeal); err != nil {
-			return err
-		}
-
-		newDeals = append(newDeals, newDeal)
-		return nil
-	})
-
+	// Get iterator with NewDealKeyPrefix
+	iterator, err := store.Iterator(types.KeyPrefix(types.NewDealKeyPrefix), nil)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+	defer iterator.Close()
 
-	return &types.QueryAllNewDealResponse{NewDeal: newDeals, Pagination: pageRes}, nil
+	// Handle pagination
+	start := 0
+	if req.Pagination != nil && req.Pagination.Offset > 0 {
+		start = int(req.Pagination.Offset)
+	}
 
+	limit := 100 // default limit
+	if req.Pagination != nil && req.Pagination.Limit > 0 {
+		limit = int(req.Pagination.Limit)
+	}
+
+	count := 0
+	for ; iterator.Valid(); iterator.Next() {
+		// Skip entries before start
+		if count < start {
+			count++
+			continue
+		}
+		// Break if we've reached the limit
+		if len(newDeals) >= limit {
+			break
+		}
+
+		var newDeal types.NewDeal
+		if err := k.cdc.Unmarshal(iterator.Value(), &newDeal); err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		newDeals = append(newDeals, newDeal)
+		count++
+	}
+
+	// Create pagination response
+	pageRes := &query.PageResponse{
+		NextKey: nil,
+		Total:   uint64(count),
+	}
+
+	return &types.QueryAllNewDealResponse{
+		NewDeal:    newDeals,
+		Pagination: pageRes,
+	}, nil
 }
 
 // NewDeal is the query handler to fetch the deal details for a given dealId

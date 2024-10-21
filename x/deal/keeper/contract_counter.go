@@ -2,24 +2,26 @@ package keeper
 
 import (
 	"example/x/deal/types"
+	"fmt"
 
-	"cosmossdk.io/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // SetContractCounter set contractCounter in the store
 func (k Keeper) SetContractCounter(ctx sdk.Context, contractCounter types.ContractCounter) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefix(types.ContractCounterKey))
+	store := k.storeService.OpenKVStore(ctx)
+	// store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefix(types.ContractCounterKey))
 	b := k.cdc.MustMarshal(&contractCounter)
-	store.Set([]byte(contractCounter.DealId), b)
+	key := createKey([]byte(types.ContractCounterKey), []byte(contractCounter.DealId))
+	store.Set(key, b)
 }
 
 // GetContractCounter returns contractCounter
 func (k Keeper) GetContractCounter(ctx sdk.Context, dealId string) (val types.ContractCounter, found bool) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefix(types.ContractCounterKey))
-
-	b := store.Get([]byte(dealId))
-	if b == nil {
+	store := k.storeService.OpenKVStore(ctx)
+	key := createKey(types.KeyPrefix(types.ContractCounterKey), []byte(dealId))
+	b, err := store.Get(key)
+	if err != nil {
 		return val, false
 	}
 
@@ -30,24 +32,35 @@ func (k Keeper) GetContractCounter(ctx sdk.Context, dealId string) (val types.Co
 
 // GetAllContractCounter gets all the contract counter from store
 func (k Keeper) GetAllContractCounter(ctx sdk.Context) ([]*types.ContractCounter, error) {
-	var contracCounter []*types.ContractCounter
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefix(types.ContractCounterKey))
-	iterator := store.Iterator(nil, nil)
+	store := k.storeService.OpenKVStore(ctx)
+
+	// Initialize the slice with capacity
+	contractCounters := make([]*types.ContractCounter, 0)
+
+	// Create an iterator using store's Iterator method
+	iterator, err := store.Iterator(types.KeyPrefix(types.ContractCounterKey), nil) // nil as prefix end
+	if err != nil {
+		return nil, fmt.Errorf("failed to create iterator: %w", err)
+	}
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
 		var counter types.ContractCounter
-		ct := iterator.Value()
-		if err := k.cdc.Unmarshal(ct, &counter); err != nil {
-			return []*types.ContractCounter{}, err
+		value := iterator.Value()
+
+		if err := k.cdc.Unmarshal(value, &counter); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal contract counter: %w", err)
 		}
-		contracCounter = append(contracCounter, &counter)
+
+		contractCounters = append(contractCounters, &counter)
 	}
-	return contracCounter, nil
+
+	return contractCounters, nil
 }
 
 // RemoveContractCounter removes contractCounter from the store
 func (k Keeper) RemoveContractCounter(ctx sdk.Context, dealId string) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefix(types.ContractCounterKey))
-	store.Delete([]byte(dealId))
+	store := k.storeService.OpenKVStore(ctx)
+	key := createKey(types.KeyPrefix(types.ContractCounterKey), []byte(dealId))
+	store.Delete(key)
 }

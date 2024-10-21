@@ -11,6 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/config"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
+
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -24,7 +25,7 @@ import (
 )
 
 // NewRootCmd creates a new root command for exampled. It is called once in the main function.
-func NewRootCmd() *cobra.Command {
+func NewRootCmd(appCodec codec.BinaryCodec) *cobra.Command {
 	var (
 		autoCliOpts        autocli.AppOptions
 		moduleBasicManager module.BasicManager
@@ -32,7 +33,8 @@ func NewRootCmd() *cobra.Command {
 	)
 
 	if err := depinject.Inject(
-		depinject.Configs(app.AppConfig(),
+		depinject.Configs(
+			app.AppConfig( /*appCodec*/ ),
 			depinject.Supply(
 				log.NewNopLogger(),
 			),

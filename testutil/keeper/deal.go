@@ -20,12 +20,10 @@ import (
 	"example/x/deal/types"
 
 	"github.com/cosmos/cosmos-sdk/runtime"
-	typesparams "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
-func DealKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
+func DealKeeper(t testing.TB) (keeper.Keeper, sdk.Context) {
 	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
-	memStoreKey := storetypes.NewMemoryStoreKey(types.MemStoreKey)
 
 	db := dbm.NewMemDB()
 	stateStore := store.NewCommitMultiStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
@@ -35,24 +33,14 @@ func DealKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 	registry := codectypes.NewInterfaceRegistry()
 	cdc := codec.NewProtoCodec(registry)
 	authority := authtypes.NewModuleAddress(govtypes.ModuleName)
-	amino := codec.NewLegacyAmino() // Initialize the Amino codec
-
-	paramsSubspace := typesparams.NewSubspace(cdc,
-		amino,
-		storeKey,
-		memStoreKey,
-		"DealParams",
-	)
 
 	k := keeper.NewKeeper(
 		nil,
 		nil,
 		cdc,
-		storeKey,
-		memStoreKey,
-		paramsSubspace,
-		authority.String(),
 		runtime.NewKVStoreService(storeKey),
+		log.NewNopLogger(),
+		authority.String(),
 	)
 
 	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())

@@ -5,25 +5,24 @@ import (
 
 	"cosmossdk.io/core/store"
 	"cosmossdk.io/log"
-	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 
 	"example/x/deal/types"
 )
 
 type (
-	cdc    codec.BinaryCodec
 	Keeper struct {
-		auth         types.AccountKeeper
-		bank         types.BankKeeper
 		cdc          codec.BinaryCodec
-		storeKey     storetypes.StoreKey
-		memKey       storetypes.StoreKey
-		paramstore   paramtypes.Subspace
-		authority    string
 		storeService store.KVStoreService
+		logger       log.Logger
+
+		// the address capable of executing a MsgUpdateParams message. Typically, this
+		// should be the x/gov module account.
+		authority string
+
+		auth types.AccountKeeper
+		bank types.BankKeeper
 	}
 )
 
@@ -31,30 +30,22 @@ func NewKeeper(
 	auth types.AccountKeeper,
 	bank types.BankKeeper,
 	cdc codec.BinaryCodec,
-	storeKey,
-	memKey storetypes.StoreKey,
-	ps paramtypes.Subspace,
-	authority string,
 	storeService store.KVStoreService,
+	logger log.Logger,
+	authority string,
 
-) *Keeper {
+) Keeper {
 	if _, err := sdk.AccAddressFromBech32(authority); err != nil {
 		panic(fmt.Sprintf("invalid authority address: %s", authority))
 	}
-	// set KeyTable if it has not already been set
-	if !ps.HasKeyTable() {
-		ps = ps.WithKeyTable(types.ParamKeyTable())
-	}
 
-	return &Keeper{
+	return Keeper{
+		cdc:          cdc,
+		storeService: storeService,
+		authority:    authority,
+		logger:       logger,
 		auth:         auth,
 		bank:         bank,
-		cdc:          cdc,
-		storeKey:     storeKey,
-		memKey:       memKey,
-		paramstore:   ps,
-		authority:    authority,
-		storeService: storeService,
 	}
 }
 
@@ -63,7 +54,11 @@ func (k Keeper) GetAuthority() string {
 	return k.authority
 }
 
-// Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
+}
+
+// helper function to create key with prefix
+func createKey(prefix []byte, key []byte) []byte {
+	return append(prefix, key...)
 }

@@ -11,9 +11,9 @@ import (
 	"example/x/deal/types"
 )
 
-func setupMsgServer(t testing.TB) (*keeper.Keeper, types.MsgServer, context.Context) {
+func setupMsgServer(t testing.TB) (keeper.Keeper, types.MsgServer, context.Context) {
 	k, ctx := keepertest.DealKeeper(t)
-	return k, keeper.NewMsgServerImpl(*k), ctx
+	return k, keeper.NewMsgServerImpl(k), ctx
 }
 
 func TestMsgServer(t *testing.T) {

@@ -3,30 +3,33 @@ package keeper
 import (
 	"example/x/deal/types"
 
-	"cosmossdk.io/store/prefix"
-	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// Then use it in the keeper like this:
 func (k Keeper) SetNewDeal(ctx sdk.Context, newDeal types.NewDeal) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefix(types.NewDealKeyPrefix))
+	store := k.storeService.OpenKVStore(ctx)
+
 	b := k.cdc.MustMarshal(&newDeal)
-	store.Set(types.NewDealKey(
-		newDeal.DealId,
-	), b)
+	if err := store.Set(types.NewDealStoreKey(newDeal.DealId), b); err != nil {
+		panic(err) // or handle error appropriately
+	}
 }
 
-// GetNewDeal returns a newDeal from its index
 func (k Keeper) GetNewDeal(
 	ctx sdk.Context,
 	index string,
-
 ) (val types.NewDeal, found bool) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefix(types.NewDealKeyPrefix))
+	store := k.storeService.OpenKVStore(ctx)
 
-	b := store.Get(types.NewDealKey(
-		index,
-	))
+	// Create the full key by combining prefix and index
+	key := append(types.KeyPrefix(types.NewDealKeyPrefix), types.NewDealKey(index)...)
+
+	b, err := store.Get(key)
+	if err != nil {
+		return val, false
+	}
+
 	if b == nil {
 		return val, false
 	}
@@ -41,17 +44,21 @@ func (k Keeper) RemoveNewDeal(
 	index string,
 
 ) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefix(types.NewDealKeyPrefix))
-	store.Delete(types.NewDealKey(
-		index,
-	))
+	store := k.storeService.OpenKVStore(ctx)
+	// Create the full key by combining prefix and index
+	key := append(types.KeyPrefix(types.NewDealKeyPrefix), types.NewDealKey(index)...)
+
+	store.Delete(key)
 }
 
-// GetAllNewDeal returns all newDeal
 func (k Keeper) GetAllNewDeal(ctx sdk.Context) (list []types.NewDeal) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefix(types.NewDealKeyPrefix))
-	iterator := storetypes.KVStorePrefixIterator(store, []byte{})
+	store := k.storeService.OpenKVStore(ctx)
 
+	// Get iterator using the NewDealKeyPrefix
+	iterator, err := store.Iterator(types.KeyPrefix(types.NewDealKeyPrefix), nil)
+	if err != nil {
+		return nil
+	}
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
@@ -60,5 +67,5 @@ func (k Keeper) GetAllNewDeal(ctx sdk.Context) (list []types.NewDeal) {
 		list = append(list, val)
 	}
 
-	return
+	return list
 }
